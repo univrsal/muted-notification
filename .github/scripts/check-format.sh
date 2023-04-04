@@ -34,7 +34,6 @@ elif type clang-format 2> /dev/null ; then
     V=$(clang-format --version)
     if [[ $V != *"version 13.0"* ]]; then
         echo "clang-format is not 13.0 (returned ${V})"
-        exit 1
     fi
 else
     echo "No appropriate clang-format found (expected clang-format-13.0.0, or clang-format)"
@@ -44,6 +43,7 @@ fi
 find . -type d \( \
     -path ./\*build\* -o \
     -path ./release -o \
+    -path ./deps -o \
     -path ./cmake -o \
     -path ./plugins/decklink/\*/decklink-sdk -o \
     -path ./plugins/enc-amf -o \

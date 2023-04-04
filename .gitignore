@@ -4,7 +4,8 @@
 /build_*/
 /release/
 /installer/Output/
-
+build-*/
+*.user
 .vscode
 .idea
 
