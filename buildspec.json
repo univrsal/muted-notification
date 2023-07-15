@@ -81,8 +81,8 @@
             "qtVersion": 6
         }
     },
-    "name": "urmuted",
-    "version": "1.0.0",
+    "name": "muted-notification",
+    "version": "1.0.1",
     "author": "univrsal",
     "email": "uni@vrsal.xyz"
 }

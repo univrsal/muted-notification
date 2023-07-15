@@ -176,7 +176,7 @@ static void play_audio(struct muted_data *data)
 static const char *muted_name(void *unused)
 {
     UNUSED_PARAMETER(unused);
-    return "U r muted";
+    return "Muted notification";
 }
 
 static void free_device(struct muted_data *d)
@@ -492,7 +492,7 @@ OBS_MODULE_AUTHOR("univrsal")
 
 const char *obs_module_name(void)
 {
-    return "U r muted";
+    return "Muted notification";
 }
 
 const char *obs_module_description(void)

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.16...3.21)
 
 # Change obs-plugintemplate to your plugin's name in a machine-readable format (e.g.:
 # obs-myawesomeplugin) and set
-project(urmuted VERSION 1.0.0)
+project(muted-notification VERSION 1.0.1)
 add_library(${CMAKE_PROJECT_NAME} MODULE)
 
 # Replace `Your Name Here` with the name (yours or your organization's) you want to see as the
@@ -10,7 +10,7 @@ add_library(${CMAKE_PROJECT_NAME} MODULE)
 set(PLUGIN_AUTHOR "univrsal")
 
 # Replace 'https://www.example.com` with a link to the website of your plugin or repository
-set(PLUGIN_WEBSITE "https://vrsal.xyz/urmuted")
+set(PLUGIN_WEBSITE "https://vrsal.xyz/muted-notification")
 
 execute_process(
   COMMAND git rev-parse --abbrev-ref HEAD
