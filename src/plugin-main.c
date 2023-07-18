@@ -276,14 +276,17 @@ static void open_device(struct muted_data *d, const char *device)
         return;
     }
 
+    // open device using the info in ma_device_info
     deviceConfig = ma_device_config_init(ma_device_type_playback);
     deviceConfig.playback.format = d->ma_decoder.outputFormat;
     deviceConfig.playback.channels = d->ma_decoder.outputChannels;
     deviceConfig.sampleRate = d->ma_decoder.outputSampleRate;
     deviceConfig.dataCallback = playback_cb;
     deviceConfig.pUserData = d;
+    deviceConfig.playback.pDeviceID = &pPlaybackDevice->id;
 
-    result = ma_device_init(NULL, &deviceConfig, &d->ma_device);
+    result = ma_device_init(&d->ma_context, &deviceConfig, &d->ma_device);
+
     if (result == MA_SUCCESS) {
         blog(LOG_INFO, "Opened '%s'", device);
         bfree(d->device);
