@@ -132,7 +132,7 @@ static void log_callback(void *ctx, ma_uint32 level, const char *message)
 
     switch (level) {
     case MA_LOG_LEVEL_INFO:
-        blog(LOG_INFO, "[%s %s] miniaudio: %s", filter_name, filter_parent_name, message);
+        blog(LOG_DEBUG, "[%s %s] miniaudio: %s", filter_name, filter_parent_name, message);
         break;
     case MA_LOG_LEVEL_DEBUG:
         blog(LOG_DEBUG, "[%s %s] miniaudio: %s", filter_name, filter_parent_name, message);
