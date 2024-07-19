@@ -23,19 +23,38 @@
 #include <media-io/audio-math.h>
 #include <obs-module.h>
 #include <util/platform.h>
-#include <miniaudio.h>
 
-#include "plugin-macros.generated.h"
+#include "miniaudio.h"
+
+#include "indicator.h"
+
+#define write_log(log_level, format, ...) \
+	blog(log_level, "[muted-notification] " format, ##__VA_ARGS__)
+
+#if defined(_DEBUG)
+#define bdebug(format, ...)       \
+	write_log(                \
+		LOG_INFO, format, \
+		##__VA_ARGS__) // apparently debug level isn't logged by default, so we just use info level for debug builds
+#else
+#define bdebug(format, ...) write_log(LOG_DEBUG, format, ##__VA_ARGS__)
+#endif
+#define binfo(format, ...) write_log(LOG_INFO, format, ##__VA_ARGS__)
+#define bwarn(format, ...) write_log(LOG_WARNING, format, ##__VA_ARGS__)
+#define berr(format, ...) write_log(LOG_ERROR, format, ##__VA_ARGS__)
 
 /* clang-format off */
-#define S_COOLDOWN          "cooldown"
-#define S_OPEN_THRESHOLD    "open_threshold"
-#define S_CLOSE_THRESHOLD   "close_threshold"
-#define S_ATTACK_TIME       "attack_time"
-#define S_HOLD_TIME         "hold_time"
-#define S_RELEASE_TIME      "release_time"
-#define S_FILE              "file"
-#define S_DEVICE            "device"
+#define S_COOLDOWN              "cooldown"
+#define S_OPEN_THRESHOLD        "open_threshold"
+#define S_CLOSE_THRESHOLD       "close_threshold"
+#define S_ATTACK_TIME           "attack_time"
+#define S_HOLD_TIME             "hold_time"
+#define S_RELEASE_TIME          "release_time"
+#define S_FILE                  "file"
+#define S_DEVICE                "device"
+#define S_AUDIO_INDICATOR       "audio_indicator"
+#define S_VISUAL_INDICATOR      "visual_indicator"
+#define S_VISUAL_INDICATOR_SIZE "visual_indicator_size"
 
 #define MT_                            obs_module_text
 #define TEXT_OPEN_THRESHOLD            MT_("NoiseGate.OpenThreshold")
@@ -46,6 +65,9 @@
 #define TEXT_COOLDOWN                  MT_("Cooldown")
 #define TEXT_FILE                      MT_("File")
 #define TEXT_DEVICE                    MT_("Device")
+#define TEXT_AUDIO_INDICATOR           MT_("AudioIndicator")
+#define TEXT_VISUAL_INDICATOR          MT_("VisualIndicator")
+#define TEXT_VISUAL_INDICATOR_SIZE     MT_("VisualIndicatorSize")
 
 #define VOL_MIN -96.0
 #define VOL_MAX 0.0
@@ -81,6 +103,11 @@ struct muted_data {
     uint64_t cooldown;
     uint64_t last_play_time;
     uint64_t file_length;
+
+    bool audio_indicator;
+    bool visual_indicator;
+
+    int indicator_size;
 };
 
 OBS_DECLARE_MODULE()
@@ -320,6 +347,11 @@ static void muted_update(void *data, obs_data_t *s)
 
     ng->cooldown = (int)obs_data_get_int(s, S_COOLDOWN);
 
+    ng->audio_indicator = obs_data_get_bool(s, S_AUDIO_INDICATOR);
+    ng->visual_indicator = obs_data_get_bool(s, S_VISUAL_INDICATOR);
+    ng->indicator_size = (int)obs_data_get_int(s, S_VISUAL_INDICATOR_SIZE);
+
+
     ng->sample_rate_i = 1.0f / sample_rate;
     ng->channels = audio_output_get_channels(obs_get_audio());
     ng->open_threshold = db_to_mul(open_threshold_db);
@@ -429,7 +461,11 @@ static struct obs_audio_data *muted_filter_audio(void *data, struct obs_audio_da
     uint64_t time = (uint64_t)(os_gettime_ns() / ((uint64_t)1e6));
     if (ng->is_open && (time - ng->last_play_time) > (ng->file_length + ng->cooldown)) {
         ng->last_play_time = time;
-        play_audio(data);
+        if (ng->audio_indicator)
+            play_audio(data);
+	    // hide the visual indicator a bit early so it blinks if there's continous audio on the source
+        if (ng->visual_indicator)
+	        indicator_show(ng->cooldown * 0.7f, ng->indicator_size);
     }
 
     return audio;
@@ -444,6 +480,10 @@ static void muted_defaults(obs_data_t *s)
     obs_data_set_default_int(s, S_RELEASE_TIME, 150);
     obs_data_set_default_int(s, S_COOLDOWN, 1500);
     obs_data_set_default_int(s, S_DEVICE, 0);
+    obs_data_set_default_bool(s, S_AUDIO_INDICATOR, false);
+    obs_data_set_default_bool(s, S_VISUAL_INDICATOR, true);
+    obs_data_set_default_int(s, S_VISUAL_INDICATOR_SIZE, 45);
+
     char *path = obs_module_file("urmuted.wav");
     obs_data_set_default_string(s, S_FILE, path);
     bfree(path);
@@ -454,6 +494,10 @@ static obs_properties_t *muted_properties(void *data)
     obs_properties_t *ppts = obs_properties_create();
     obs_property_t *p;
     struct muted_data *d = data;
+
+    p = obs_properties_add_bool(ppts, S_AUDIO_INDICATOR, TEXT_AUDIO_INDICATOR);
+    p = obs_properties_add_bool(ppts, S_VISUAL_INDICATOR, TEXT_VISUAL_INDICATOR);
+    p = obs_properties_add_int(ppts, S_VISUAL_INDICATOR_SIZE, TEXT_VISUAL_INDICATOR_SIZE, 5, 500, 1);
 
     p = obs_properties_add_float_slider(ppts, S_CLOSE_THRESHOLD, TEXT_CLOSE_THRESHOLD, VOL_MIN, VOL_MAX, 1.0);
     obs_property_float_set_suffix(p, " dB");
@@ -506,8 +550,10 @@ const char *obs_module_description(void)
 bool obs_module_load(void)
 {
     obs_register_source(&muted_filter);
-    blog(LOG_INFO, "plugin loaded successfully (version %s)", PLUGIN_VERSION);
+	binfo("loaded v%s, %s@%s, compile time: %s", PLUGIN_VERSION,
+	      GIT_COMMIT_HASH, GIT_BRANCH, BUILD_TIME);
 
+    indicator_init();
     return true;
 }
 
