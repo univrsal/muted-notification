@@ -7,12 +7,14 @@
 #include <QCursor>
 #include <QScreen>
 #include <QTimer>
+#include <QTime>
 
 class OverlayWidget : public QWidget {
 	QTimer *m_timer;
 	bool m_want_show = false;
 	int m_timeout_ms = 0;
 	int m_indicator_size = 0;
+	uint64_t m_start_time = 0;
 public:
 	OverlayWidget(QWidget *parent)
 		: QWidget(parent)
@@ -62,13 +64,20 @@ protected slots:
 	void tick()
 	{
 		if (m_want_show) {
+			m_start_time = QDateTime::currentMSecsSinceEpoch();
 			m_want_show = false;
 			setFixedSize(m_indicator_size, m_indicator_size);
 			updateIndicatorPosition();
 			setVisible(true);
+		}
 
-			QTimer::singleShot(m_timeout_ms,
-					   [this] { setVisible(false); });
+		if (m_timeout_ms > 0) {
+			uint64_t current_time =
+				QDateTime::currentMSecsSinceEpoch();
+			if (current_time - m_start_time > m_timeout_ms) {
+				setVisible(false);
+				m_timeout_ms = 0;
+			}
 		}
 	}
 };
