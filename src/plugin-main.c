@@ -111,42 +111,7 @@ struct muted_data {
 };
 
 OBS_DECLARE_MODULE()
-
-lookup_t *obs_filter_lookup = NULL;
-lookup_t *obs_module_lookup = NULL;
-
-/* Forwards lookups to the obs filter module which has the strings for the
- * noise-gate portion of this filter
- */
-const char *obs_module_text(const char *val)
-{
-    const char *out = val;
-    text_lookup_getstr(obs_filter_lookup, val, &out);
-    return out;
-}
-
-bool obs_module_get_string(const char *val, const char **out)
-{
-    if (strstr(val, "NoiseGate") != NULL)
-        return text_lookup_getstr(obs_filter_lookup, val, out);
-    return text_lookup_getstr(obs_module_lookup, val, out);
-}
-
-void obs_module_set_locale(const char *locale)
-{
-    if (obs_filter_lookup)
-        text_lookup_destroy(obs_filter_lookup);
-    if (obs_module_lookup)
-        text_lookup_destroy(obs_module_lookup);
-    obs_filter_lookup = obs_module_load_locale(obs_get_module("obs-filters"), "en-US", locale);
-    obs_module_lookup = obs_module_load_locale(obs_current_module(), "en-US", locale);
-}
-
-void obs_module_free_locale(void)
-{
-    text_lookup_destroy(obs_filter_lookup);
-    obs_filter_lookup = NULL;
-}
+OBS_MODULE_USE_DEFAULT_LOCALE("muted_notification", "en-US")
 
 static void log_callback(void *ctx, ma_uint32 level, const char *message)
 {
@@ -559,6 +524,4 @@ bool obs_module_load(void)
 
 void obs_module_unload()
 {
-    text_lookup_destroy(obs_filter_lookup);
-    text_lookup_destroy(obs_module_lookup);
 }
