@@ -55,6 +55,9 @@
 #define S_AUDIO_INDICATOR       "audio_indicator"
 #define S_VISUAL_INDICATOR      "visual_indicator"
 #define S_VISUAL_INDICATOR_SIZE "visual_indicator_size"
+#define S_NOISE_GATE_GROUP      "ng_group"
+#define S_VISUAL_GROUP          "visual_group"
+#define S_AUDIO_GROUP           "audio_group"
 
 #define MT_                            obs_module_text
 #define TEXT_OPEN_THRESHOLD            MT_("NoiseGate.OpenThreshold")
@@ -65,9 +68,12 @@
 #define TEXT_COOLDOWN                  MT_("Cooldown")
 #define TEXT_FILE                      MT_("File")
 #define TEXT_DEVICE                    MT_("Device")
-#define TEXT_AUDIO_INDICATOR           MT_("AudioIndicator")
-#define TEXT_VISUAL_INDICATOR          MT_("VisualIndicator")
+#define TEXT_AUDIO_INDICATOR           MT_("Enabled")
+#define TEXT_VISUAL_INDICATOR          MT_("Enabled")
 #define TEXT_VISUAL_INDICATOR_SIZE     MT_("VisualIndicatorSize")
+#define TEXT_NOISE_GATE_GROUP          MT_("NoiseGate")
+#define TEXT_VISUAL_GROUP              MT_("Group.VisualIndicator")
+#define TEXT_AUDIO_GROUP               MT_("Group.AudioIndicator")
 
 #define VOL_MIN -96.0
 #define VOL_MAX 0.0
@@ -460,29 +466,47 @@ static obs_properties_t *muted_properties(void *data)
     obs_property_t *p;
     struct muted_data *d = data;
 
-    p = obs_properties_add_bool(ppts, S_AUDIO_INDICATOR, TEXT_AUDIO_INDICATOR);
-    p = obs_properties_add_bool(ppts, S_VISUAL_INDICATOR, TEXT_VISUAL_INDICATOR);
-    p = obs_properties_add_int(ppts, S_VISUAL_INDICATOR_SIZE, TEXT_VISUAL_INDICATOR_SIZE, 5, 500, 1);
+    obs_properties_t *ng_group = obs_properties_create();
+    obs_properties_t *audio_group = obs_properties_create();
+    obs_properties_t *visual_group = obs_properties_create();
 
-    p = obs_properties_add_float_slider(ppts, S_CLOSE_THRESHOLD, TEXT_CLOSE_THRESHOLD, VOL_MIN, VOL_MAX, 1.0);
+    /* Noise gate settings */
+    p = obs_properties_add_float_slider(ng_group, S_CLOSE_THRESHOLD,
+					TEXT_CLOSE_THRESHOLD, VOL_MIN, VOL_MAX, 1.0);
     obs_property_float_set_suffix(p, " dB");
-    p = obs_properties_add_float_slider(ppts, S_OPEN_THRESHOLD, TEXT_OPEN_THRESHOLD, VOL_MIN, VOL_MAX, 1.0);
+    p = obs_properties_add_float_slider(ng_group, S_OPEN_THRESHOLD,
+					TEXT_OPEN_THRESHOLD, VOL_MIN, VOL_MAX, 1.0);
     obs_property_float_set_suffix(p, " dB");
-    p = obs_properties_add_int(ppts, S_ATTACK_TIME, TEXT_ATTACK_TIME, 0, 10000, 1);
+    p = obs_properties_add_int(ng_group, S_ATTACK_TIME, TEXT_ATTACK_TIME, 0, 10000, 1);
     obs_property_int_set_suffix(p, " ms");
-    p = obs_properties_add_int(ppts, S_HOLD_TIME, TEXT_HOLD_TIME, 0, 10000, 1);
+    p = obs_properties_add_int(ng_group, S_HOLD_TIME, TEXT_HOLD_TIME, 0, 10000, 1);
     obs_property_int_set_suffix(p, " ms");
-    p = obs_properties_add_int(ppts, S_RELEASE_TIME, TEXT_RELEASE_TIME, 0, 10000, 1);
+    p = obs_properties_add_int(ng_group, S_RELEASE_TIME, TEXT_RELEASE_TIME, 0, 10000, 1);
     obs_property_int_set_suffix(p, " ms");
-    p = obs_properties_add_int(ppts, S_COOLDOWN, TEXT_COOLDOWN, 0, 10000, 500);
+    p = obs_properties_add_int(ng_group, S_COOLDOWN, TEXT_COOLDOWN, 0, 10000, 500);
     obs_property_int_set_suffix(p, " ms");
 
-    p = obs_properties_add_list(ppts, S_DEVICE, TEXT_DEVICE, OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+    obs_properties_add_group(ppts, S_NOISE_GATE_GROUP, TEXT_NOISE_GATE_GROUP, OBS_GROUP_NORMAL, ng_group);
+
+    /* Visual indicator settings */
+    p = obs_properties_add_bool(visual_group, S_VISUAL_INDICATOR,
+				TEXT_VISUAL_INDICATOR);
+    p = obs_properties_add_int(visual_group, S_VISUAL_INDICATOR_SIZE,
+			       TEXT_VISUAL_INDICATOR_SIZE, 5, 500, 1);
+    obs_properties_add_group(ppts, S_VISUAL_GROUP, TEXT_VISUAL_GROUP, OBS_GROUP_NORMAL, visual_group);
+
+
+    /* Audio indicator settings */
+    p = obs_properties_add_bool(audio_group, S_AUDIO_INDICATOR, TEXT_AUDIO_INDICATOR);
+    p = obs_properties_add_list(audio_group, S_DEVICE, TEXT_DEVICE,
+				OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
     populate_list(d, p);
-
     char *path = obs_module_file("urmuted.wav");
-    obs_properties_add_path(ppts, S_FILE, TEXT_FILE, OBS_PATH_FILE, "WAV file (*.wav)", path);
+    obs_properties_add_path(audio_group, S_FILE, TEXT_FILE, OBS_PATH_FILE,
+			    "WAV file (*.wav)", path);
     bfree(path);
+
+    obs_properties_add_group(ppts, S_AUDIO_GROUP, TEXT_AUDIO_GROUP, OBS_GROUP_NORMAL, audio_group);
 
     return ppts;
 }
